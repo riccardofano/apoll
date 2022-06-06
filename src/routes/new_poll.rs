@@ -1,10 +1,13 @@
-use actix_web::HttpResponse;
+use actix_web::{web, HttpResponse};
+use validator::Validate;
 
-pub struct FormData {
-    pub username: String,
-    pub prompt: String,
-}
+use crate::domain::PollFormData;
 
-pub async fn create_poll() -> HttpResponse {
+pub async fn create_poll(form: web::Form<PollFormData>) -> HttpResponse {
+    let _form = match form.validate() {
+        Ok(form) => form,
+        Err(_) => return HttpResponse::BadRequest().finish(),
+    };
+
     HttpResponse::Ok().finish()
 }
