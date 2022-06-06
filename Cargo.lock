@@ -231,6 +231,7 @@ dependencies = [
  "reqwest",
  "serde",
  "serde-aux",
+ "serde_json",
  "sqlx",
  "tokio",
  "uuid 1.1.1",
