@@ -15,6 +15,7 @@ name = "apoll"
 [dependencies]
 actix-web = "4"
 config = { version = "0.13.1", features = ["yaml"] }
+reqwest = "0.11.10"
 serde = "1.0.137"
 serde-aux = "3.0.1"
 sqlx = { version = "0.5.13", default-features = false, features = [ "runtime-actix-rustls", "macros", "postgres", "uuid", "chrono", "migrate", "offline"]}

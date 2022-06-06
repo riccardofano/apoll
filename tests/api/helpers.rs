@@ -30,11 +30,12 @@ impl TestApp {
         // Run the server
         let listener =
             TcpListener::bind(configuration.address()).expect("failed to bind random port");
+        let application_port = listener.local_addr().unwrap().port();
         let server = run(listener, db_pool.clone()).expect("failed to bind address");
         let _ = tokio::spawn(server);
 
         TestApp {
-            address: configuration.address(),
+            address: format!("http://localhost:{}", application_port),
             db_name: configuration.database.database_name,
             db_pool,
         }
@@ -60,6 +61,10 @@ impl TestApp {
             .expect("failed to migrate the database");
 
         db_pool
+    }
+
+    pub fn endpoint(&self, s: &str) -> String {
+        format!("{}{}", &self.address, s)
     }
 }
 
