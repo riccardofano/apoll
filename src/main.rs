@@ -13,8 +13,7 @@ async fn main() -> std::io::Result<()> {
     let address = configuration.address();
     let listener = TcpListener::bind(address)?;
 
-    let server = run(listener, connection_pool).await?;
-    server.await?;
+    run(listener, connection_pool)?.await?;
 
     Ok(())
 }
