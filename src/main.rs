@@ -1,13 +1,14 @@
-use actix_web::{web, App, HttpResponse, HttpServer, Responder};
+use apoll::startup::run;
+
+use std::net::TcpListener;
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
-    HttpServer::new(|| App::new().route("/", web::get().to(hello)))
-        .bind(("127.0.0.1", 8000))?
-        .run()
-        .await
-}
+    let address = format!("127.0.0.1:{}", 3000);
+    let listener = TcpListener::bind(address)?;
 
-async fn hello() -> impl Responder {
-    HttpResponse::Ok().body("Hello")
+    let server = run(listener).await?;
+    server.await?;
+
+    Ok(())
 }
