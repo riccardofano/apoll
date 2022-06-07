@@ -17,7 +17,6 @@ jobs:
     env:
       SQLX_VERSION: 0.5.13
       SQLX_FEATURES: rustls,postgres
-      DATABASE_URL: postgres://postgres:password@localhost:5432/apoll
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
@@ -56,8 +55,9 @@ jobs:
           sudo apt-get install libpq-dev -y
           SKIP_DOCKER=true ./scripts/init_db.sh
       - name: Check sqlx-data.json is up-to-date
+        # run --merged to mitigate stub sqlx-data.json files
         run: |
-          cargo sqlx prepare --database-url ${{ env.DATABASE_URL }} --check -- --bin apoll
+          cargo sqlx prepare --database-url ${{ env.DB_URL }} --check --merged
 
       - name: Run cargo test
         uses: actions-rs/cargo@v1
