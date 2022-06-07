@@ -17,6 +17,7 @@ jobs:
     env:
       SQLX_VERSION: 0.5.13
       SQLX_FEATURES: rustls,postgres
+      DATABASE_URL: postgres://postgres:password@localhost:5432/apoll
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
@@ -56,7 +57,7 @@ jobs:
           SKIP_DOCKER=true ./scripts/init_db.sh
       - name: Check sqlx-data.json is up-to-date
         run: |
-          cargo sqlx prepare --check -- --bin apoll
+          cargo sqlx prepare --database-url ${{ env.DATABASE_URL }} --check -- --bin apoll
 
       - name: Run cargo test
         uses: actions-rs/cargo@v1
