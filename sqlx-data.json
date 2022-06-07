@@ -1,0 +1,43 @@
+{
+  "db": "PostgreSQL",
+  "03f22650dd41c672c599a306945cae05d9d43b1440a6ababea4e330b76f65ee0": {
+    "query": "\n        INSERT INTO users (user_id, created_at)\n        VALUES ($1, now())\n        ",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "6b891f2147a6994fcdff2248e03e73a35f3ae51c41b3715640f5405abfff35b2": {
+    "query": "\n        INSERT INTO polls (poll_id, creator_id, prompt, created_at)\n        VALUES ($1, $2, $3, now())\n        ",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid",
+          "Varchar"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "98c3e34960ed34e2d187b85fe66b7513304b298c7b4369ece029371d432872b1": {
+    "query": "\n        INSERT INTO poll_users (poll_id, user_id, username)\n        VALUES ($1, $2, $3)\n        ",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid",
+          "Varchar"
+        ]
+      },
+      "nullable": []
+    }
+  }
+}
