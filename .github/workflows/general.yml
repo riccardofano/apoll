@@ -17,6 +17,7 @@ jobs:
     env:
       SQLX_VERSION: 0.5.13
       SQLX_FEATURES: rustls,postgres
+      DB_URL: postgres://postgres:password@localhost:5432/apoll
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
