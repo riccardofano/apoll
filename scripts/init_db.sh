@@ -8,7 +8,8 @@ DB_NAME=${POSTGRES_DB:=apoll}
 DB_PORT=${POSTGRES_PORT:=5432}
 
 # Set SKIP_DOCKER to skip Docker if a Postgres db is already running
-if [[ -z "${SKIP_DOCKER}" ]] then
+if [[ -z "${SKIP_DOCKER}" ]]
+then
     RUNNING_POSTGRES_CONTAINER=$(docker ps --filter 'name=postgres' --format '{{.ID}}')
     if [[ -n $RUNNING_POSTGRES_CONTAINER ]]; then
         echo >&2 "there is a postgres container alraedy running, kill it with"
