@@ -35,9 +35,20 @@ pub async fn create_poll(
         .await
         .context("failed to begin Postgres transaction from pool")?;
 
+    // Create new user
     let user_id = insert_new_user(&mut transaction)
         .await
         .context("could not insert new user")?;
+
+    // Create new poll
+    let poll_id = insert_new_poll(&mut transaction, &user_id, form.0.prompt)
+        .await
+        .context("could not insert new poll")?;
+
+    // Create poll_user instance with new user and poll
+    link_poll_user(&mut transaction, &poll_id, &user_id, form.0.username)
+        .await
+        .context("could not link poll and user")?;
 
     transaction
         .commit()
@@ -60,4 +71,46 @@ async fn insert_new_user(transaction: &mut Transaction<'_, Postgres>) -> Result<
     .await?;
 
     Ok(user_id)
+}
+
+async fn insert_new_poll(
+    transaction: &mut Transaction<'_, Postgres>,
+    creator_id: &Uuid,
+    prompt: String,
+) -> Result<Uuid, sqlx::Error> {
+    let poll_id = Uuid::new_v4();
+    sqlx::query!(
+        r#"
+        INSERT INTO polls (poll_id, creator_id, prompt, created_at)
+        VALUES ($1, $2, $3, now())
+        "#,
+        poll_id,
+        creator_id,
+        prompt
+    )
+    .execute(transaction)
+    .await?;
+
+    Ok(poll_id)
+}
+
+async fn link_poll_user(
+    transaction: &mut Transaction<'_, Postgres>,
+    poll_id: &Uuid,
+    user_id: &Uuid,
+    username: String,
+) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        r#"
+        INSERT INTO poll_users (poll_id, user_id, username)
+        VALUES ($1, $2, $3)
+        "#,
+        poll_id,
+        user_id,
+        username
+    )
+    .execute(transaction)
+    .await?;
+
+    Ok(())
 }
