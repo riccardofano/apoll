@@ -1,13 +1,19 @@
-use actix_web::{web, App, HttpResponse, HttpServer, Responder};
+use apoll::{configuration::Settings, startup::run};
+use sqlx::postgres::PgPoolOptions;
+
+use std::{net::TcpListener, time::Duration};
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
-    HttpServer::new(|| App::new().route("/", web::get().to(hello)))
-        .bind(("127.0.0.1", 8000))?
-        .run()
-        .await
-}
+    let configuration = Settings::new().expect("failed to read configuration");
+    let connection_pool = PgPoolOptions::new()
+        .connect_timeout(Duration::from_secs(2))
+        .connect_lazy_with(configuration.database.with_db());
 
-async fn hello() -> impl Responder {
-    HttpResponse::Ok().body("Hello")
+    let address = configuration.address();
+    let listener = TcpListener::bind(address)?;
+
+    run(listener, connection_pool)?.await?;
+
+    Ok(())
 }
