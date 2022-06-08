@@ -3,6 +3,7 @@ use std::net::TcpListener;
 use once_cell::sync::Lazy;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use tokio::runtime::Runtime;
+use tracing::info;
 use uuid::Uuid;
 
 use apoll::configuration::{DatabaseSettings, Settings};
@@ -112,14 +113,12 @@ impl Drop for TestApp {
                 conn.execute(&*format!("DROP DATABASE \"{}\";", db_name))
                     .await
                     .unwrap_or_else(|_| panic!("Failed to drop temporary database: {}", db_name));
-                // TODO: replace this with tracer
-                println!("Dropped database: {db_name}");
+                info!("Dropped database: {db_name}");
                 let _ = tx.send(());
             })
         });
 
         let _ = rx.recv();
-        // TODO: replace this with tracer
-        println!("ran test teardown");
+        info!("ran test teardown");
     }
 }
