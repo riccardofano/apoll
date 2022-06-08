@@ -4,7 +4,7 @@ use actix_web::{dev::Server, web, App, HttpResponse, HttpServer, Responder};
 use sqlx::PgPool;
 use tracing_actix_web::TracingLogger;
 
-use crate::routes::create_poll;
+use crate::routes::poll::create_poll;
 
 pub fn run(listener: TcpListener, db_pool: PgPool) -> Result<Server, std::io::Error> {
     let db_pool = web::Data::new(db_pool);
