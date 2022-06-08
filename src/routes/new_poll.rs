@@ -84,7 +84,7 @@ async fn insert_new_user(transaction: &mut Transaction<'_, Postgres>) -> Result<
 
 #[tracing::instrument(
     name = "Inserting poll details in the database",
-    skip_all, 
+    skip_all,
     fields(creator_id = %creator_id, poll_prompt = %prompt)
 )]
 async fn insert_new_poll(
