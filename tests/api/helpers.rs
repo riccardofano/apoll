@@ -1,12 +1,28 @@
 use std::net::TcpListener;
 
-use apoll::{
-    configuration::{DatabaseSettings, Settings},
-    startup::run,
-};
+use once_cell::sync::Lazy;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use tokio::runtime::Runtime;
+use tracing::info;
 use uuid::Uuid;
+
+use apoll::configuration::{DatabaseSettings, Settings};
+use apoll::startup::run;
+use apoll::telemetry::{get_subscriber, init_subscriber};
+
+// Only initialize tracing once
+static TRACING: Lazy<()> = Lazy::new(|| {
+    let default_filter_level = "info".to_string();
+    let subscriber_name = "test".to_string();
+
+    if std::env::var("TEST_LOG").is_ok() {
+        let subscriber = get_subscriber(subscriber_name, default_filter_level, std::io::stdout);
+        init_subscriber(subscriber);
+    } else {
+        let subscriber = get_subscriber(subscriber_name, default_filter_level, std::io::sink);
+        init_subscriber(subscriber);
+    }
+});
 
 pub struct TestApp {
     pub address: String,
@@ -16,6 +32,9 @@ pub struct TestApp {
 
 impl TestApp {
     pub async fn new() -> Self {
+        // Start tracing
+        Lazy::force(&TRACING);
+
         // Assign a random name and port to the application
         let configuration = {
             let mut c = Settings::new().expect("failed to read configuration");
@@ -94,14 +113,12 @@ impl Drop for TestApp {
                 conn.execute(&*format!("DROP DATABASE \"{}\";", db_name))
                     .await
                     .unwrap_or_else(|_| panic!("Failed to drop temporary database: {}", db_name));
-                // TODO: replace this with tracer
-                println!("Dropped database: {db_name}");
+                info!("Dropped database: {db_name}");
                 let _ = tx.send(());
             })
         });
 
         let _ = rx.recv();
-        // TODO: replace this with tracer
-        println!("ran test teardown");
+        info!("ran test teardown");
     }
 }

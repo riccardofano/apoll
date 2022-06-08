@@ -24,6 +24,14 @@ impl ResponseError for CreatePollError {
     }
 }
 
+#[tracing::instrument(
+    name = "Creating a new poll",
+    skip_all,
+    fields(
+        user_name = %form.username,
+        poll_prompt = %form.prompt
+    )
+)]
 pub async fn create_poll(
     form: web::Form<PollFormData>,
     db_pool: web::Data<PgPool>,
@@ -58,6 +66,7 @@ pub async fn create_poll(
     Ok(HttpResponse::Ok().finish())
 }
 
+#[tracing::instrument(name = "Inserting new poll creator in the database", skip_all)]
 async fn insert_new_user(transaction: &mut Transaction<'_, Postgres>) -> Result<Uuid, sqlx::Error> {
     let user_id = Uuid::new_v4();
     sqlx::query!(
@@ -73,6 +82,11 @@ async fn insert_new_user(transaction: &mut Transaction<'_, Postgres>) -> Result<
     Ok(user_id)
 }
 
+#[tracing::instrument(
+    name = "Inserting poll details in the database",
+    skip_all,
+    fields(creator_id = %creator_id, poll_prompt = %prompt)
+)]
 async fn insert_new_poll(
     transaction: &mut Transaction<'_, Postgres>,
     creator_id: &Uuid,
@@ -94,6 +108,11 @@ async fn insert_new_poll(
     Ok(poll_id)
 }
 
+#[tracing::instrument(
+    name = "Linking poll and its creator in the database",
+    skip_all,
+    fields(poll_id = %poll_id, creator_id = %user_id, user_name = %username)
+)]
 async fn link_poll_user(
     transaction: &mut Transaction<'_, Postgres>,
     poll_id: &Uuid,
