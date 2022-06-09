@@ -20,12 +20,18 @@ impl ResponseError for ShowPollError {
         }
     }
 }
+
+#[tracing::instrument(
+    name = "Show poll page"
+    skip_all,
+    fields(poll_id=tracing::field::Empty)
+)]
 pub async fn show_poll(
     path: web::Path<Uuid>,
     db_pool: web::Data<PgPool>,
 ) -> Result<HttpResponse, ShowPollError> {
     let poll_id = path.into_inner();
-    let _ = match validate_poll_id(&db_pool, poll_id).await {
+    tracing::Span::current().record("poll_id", &tracing::field::display(&poll_id));
 
     let prompt = validate_poll_id(&db_pool, poll_id)
         .await
@@ -35,6 +41,10 @@ pub async fn show_poll(
     Ok(HttpResponse::Ok().body(prompt))
 }
 
+#[tracing::instrument(
+    name = "retrieve pool details from database"
+    skip(db_pool)
+)]
 pub async fn validate_poll_id(
     db_pool: &PgPool,
     poll_id: Uuid,
