@@ -12,6 +12,32 @@
       "nullable": []
     }
   },
+  "37a3bd07e55f7fe349acfd71d840d2ce4395106a2dbf27da9fd4989047e12460": {
+    "query": "\n        SELECT user_id, username\n        FROM poll_users\n        WHERE poll_id = $1\n        ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "user_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "username",
+          "type_info": "Varchar"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      },
+      "nullable": [
+        false,
+        false
+      ]
+    }
+  },
   "6b891f2147a6994fcdff2248e03e73a35f3ae51c41b3715640f5405abfff35b2": {
     "query": "\n        INSERT INTO polls (poll_id, creator_id, prompt, created_at)\n        VALUES ($1, $2, $3, now())\n        ",
     "describe": {
@@ -38,6 +64,26 @@
         ]
       },
       "nullable": []
+    }
+  },
+  "a7874898b2bc84e48fa43e3992ee076c2ceb2f47579273a1e8e16f0cfdbdc65d": {
+    "query": "\n        SELECT prompt\n        FROM polls\n        WHERE poll_id = $1\n        ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "prompt",
+          "type_info": "Varchar"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      },
+      "nullable": [
+        false
+      ]
     }
   }
 }

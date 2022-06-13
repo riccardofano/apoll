@@ -85,6 +85,54 @@ impl TestApp {
     pub fn endpoint(&self, s: &str) -> String {
         format!("{}{}", &self.address, s)
     }
+
+    pub async fn post_create_user(&self) -> Uuid {
+        let user_id = Uuid::new_v4();
+        sqlx::query!(
+            r#"
+            INSERT INTO users (user_id, created_at)
+            VALUES ($1, now())
+            "#,
+            user_id
+        )
+        .execute(&self.db_pool)
+        .await
+        .expect("failed to create new user");
+
+        user_id
+    }
+
+    pub async fn post_create_poll(&self, prompt: &str, username: &str) -> Uuid {
+        let user_id = self.post_create_user().await;
+        let poll_id = Uuid::new_v4();
+        sqlx::query!(
+            r#"
+            INSERT INTO polls (poll_id, creator_id, prompt, created_at)
+            VALUES ($1, $2, $3, now())
+            "#,
+            poll_id,
+            user_id,
+            prompt
+        )
+        .execute(&self.db_pool)
+        .await
+        .expect("failed to create poll");
+
+        sqlx::query!(
+            r#"
+            INSERT INTO poll_users (poll_id, user_id, username)
+            VALUES ($1, $2, $3)
+            "#,
+            poll_id,
+            user_id,
+            username
+        )
+        .execute(&self.db_pool)
+        .await
+        .expect("failed to insert poll_users junction table entry");
+
+        poll_id
+    }
 }
 
 impl Drop for TestApp {
