@@ -1,4 +1,4 @@
-use actix_web::{web, HttpResponse, ResponseError};
+use actix_web::{http::header::ContentType, web, HttpResponse, ResponseError};
 use anyhow::Context;
 use reqwest::StatusCode;
 use sqlx::PgPool;
@@ -42,7 +42,30 @@ pub async fn show_poll(
         .await
         .context("failed to retrieve poll users")?;
 
-    Ok(HttpResponse::Ok().body(format!("{prompt}, {poll_users:?}")))
+    let users_li = poll_users
+        .iter()
+        .map(|u| format!("<li>{}</li>", u.username))
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    Ok(HttpResponse::Ok()
+        .content_type(ContentType::html())
+        .body(format!(
+            r#"<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <title>Login</title>
+    </head>
+    <body>
+        <h1>{prompt}</h1>
+        <h2>Users</h2>
+        <ul>
+            {users_li}
+        </ul>
+    </body>
+</html>"#
+        )))
 }
 
 #[tracing::instrument(
@@ -64,7 +87,6 @@ async fn validate_poll_id(db_pool: &PgPool, poll_id: &Uuid) -> Result<Option<Str
     Ok(result.map(|r| r.prompt))
 }
 
-#[derive(Debug)]
 struct User {
     user_id: Uuid,
     username: String,
