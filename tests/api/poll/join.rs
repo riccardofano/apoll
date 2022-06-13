@@ -29,3 +29,29 @@ async fn join_should_return_404_if_poll_id_does_not_exist() {
 
     assert_eq!(response.status().as_u16(), 404);
 }
+
+#[tokio::test]
+async fn joined_user_should_appear_in_the_poll_page() {
+    let app = TestApp::new().await;
+
+    let poll_id = app.post_create_poll("Test Question", "testuser").await;
+    let username: String = FirstName().fake();
+    let body = serde_json::json!({ "username": &username });
+
+    // Join poll
+    let response = app.join_poll(&poll_id, &body).await;
+    assert_eq!(response.status().as_u16(), 200);
+
+    // Visit poll page
+    let response = app
+        .api_client
+        .get(app.endpoint(&format!("/poll/{poll_id}")))
+        .send()
+        .await
+        .expect("failed to send request");
+    assert_eq!(response.status().as_u16(), 200);
+
+    // Assert username is in the poll page
+    let text = response.text().await.unwrap();
+    assert!(text.contains(&username));
+}
