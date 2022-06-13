@@ -88,6 +88,8 @@ async fn validate_poll_id(db_pool: &PgPool, poll_id: &Uuid) -> Result<Option<Str
 }
 
 struct User {
+    // TODO: remove this when user_id gets used
+    #[allow(dead_code)]
     user_id: Uuid,
     username: String,
 }

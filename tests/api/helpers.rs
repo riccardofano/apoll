@@ -1,7 +1,5 @@
 use std::net::TcpListener;
 
-use fake::faker::name::en::FirstName;
-use fake::Fake;
 use once_cell::sync::Lazy;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use tokio::runtime::Runtime;
@@ -104,7 +102,7 @@ impl TestApp {
         user_id
     }
 
-    pub async fn post_create_poll(&self, prompt: &str) -> Uuid {
+    pub async fn post_create_poll(&self, prompt: &str, username: &str) -> Uuid {
         let user_id = self.post_create_user().await;
         let poll_id = Uuid::new_v4();
         sqlx::query!(
@@ -120,7 +118,6 @@ impl TestApp {
         .await
         .expect("failed to create poll");
 
-        let username: String = FirstName().fake();
         sqlx::query!(
             r#"
             INSERT INTO poll_users (poll_id, user_id, username)
