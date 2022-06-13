@@ -1,43 +1,89 @@
 {
   "db": "PostgreSQL",
   "03f22650dd41c672c599a306945cae05d9d43b1440a6ababea4e330b76f65ee0": {
-    "query": "\n        INSERT INTO users (user_id, created_at)\n        VALUES ($1, now())\n        ",
     "describe": {
       "columns": [],
+      "nullable": [],
       "parameters": {
         "Left": [
           "Uuid"
         ]
-      },
-      "nullable": []
-    }
+      }
+    },
+    "query": "\n        INSERT INTO users (user_id, created_at)\n        VALUES ($1, now())\n        "
+  },
+  "37a3bd07e55f7fe349acfd71d840d2ce4395106a2dbf27da9fd4989047e12460": {
+    "describe": {
+      "columns": [
+        {
+          "name": "user_id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "username",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n        SELECT user_id, username\n        FROM poll_users\n        WHERE poll_id = $1\n        "
   },
   "6b891f2147a6994fcdff2248e03e73a35f3ae51c41b3715640f5405abfff35b2": {
-    "query": "\n        INSERT INTO polls (poll_id, creator_id, prompt, created_at)\n        VALUES ($1, $2, $3, now())\n        ",
     "describe": {
       "columns": [],
+      "nullable": [],
       "parameters": {
         "Left": [
           "Uuid",
           "Uuid",
           "Varchar"
         ]
-      },
-      "nullable": []
-    }
+      }
+    },
+    "query": "\n        INSERT INTO polls (poll_id, creator_id, prompt, created_at)\n        VALUES ($1, $2, $3, now())\n        "
   },
   "98c3e34960ed34e2d187b85fe66b7513304b298c7b4369ece029371d432872b1": {
-    "query": "\n        INSERT INTO poll_users (poll_id, user_id, username)\n        VALUES ($1, $2, $3)\n        ",
     "describe": {
       "columns": [],
+      "nullable": [],
       "parameters": {
         "Left": [
           "Uuid",
           "Uuid",
           "Varchar"
         ]
-      },
-      "nullable": []
-    }
+      }
+    },
+    "query": "\n        INSERT INTO poll_users (poll_id, user_id, username)\n        VALUES ($1, $2, $3)\n        "
+  },
+  "a7874898b2bc84e48fa43e3992ee076c2ceb2f47579273a1e8e16f0cfdbdc65d": {
+    "describe": {
+      "columns": [
+        {
+          "name": "prompt",
+          "ordinal": 0,
+          "type_info": "Varchar"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n        SELECT prompt\n        FROM polls\n        WHERE poll_id = $1\n        "
   }
 }
