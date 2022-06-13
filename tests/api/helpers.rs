@@ -1,5 +1,7 @@
 use std::net::TcpListener;
 
+use fake::faker::name::en::FirstName;
+use fake::Fake;
 use once_cell::sync::Lazy;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use tokio::runtime::Runtime;
@@ -117,6 +119,20 @@ impl TestApp {
         .execute(&self.db_pool)
         .await
         .expect("failed to create poll");
+
+        let username: String = FirstName().fake();
+        sqlx::query!(
+            r#"
+            INSERT INTO poll_users (poll_id, user_id, username)
+            VALUES ($1, $2, $3)
+            "#,
+            poll_id,
+            user_id,
+            username
+        )
+        .execute(&self.db_pool)
+        .await
+        .expect("failed to insert poll_users junction table entry");
 
         poll_id
     }

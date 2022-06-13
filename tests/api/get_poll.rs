@@ -47,5 +47,7 @@ async fn page_should_return_200_if_path_is_a_valid_poll() {
         .await
         .expect("failed to send request");
 
-    assert_eq!(response.status().as_u16(), 200)
+    assert_eq!(response.status().as_u16(), 200);
+
+    dbg!(response.text().await.unwrap());
 }

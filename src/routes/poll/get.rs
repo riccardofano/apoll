@@ -33,22 +33,23 @@ pub async fn show_poll(
     let poll_id = path.into_inner();
     tracing::Span::current().record("poll_id", &tracing::field::display(&poll_id));
 
-    let prompt = validate_poll_id(&db_pool, poll_id)
+    let prompt = validate_poll_id(&db_pool, &poll_id)
         .await
         .context("failed to query database for poll_id")?
         .ok_or(ShowPollError::InvalidPollError)?;
 
-    Ok(HttpResponse::Ok().body(prompt))
+    let poll_users = get_poll_users(&db_pool, &poll_id)
+        .await
+        .context("failed to retrieve poll users")?;
+
+    Ok(HttpResponse::Ok().body(format!("{prompt}, {poll_users:?}")))
 }
 
 #[tracing::instrument(
     name = "retrieve pool details from database"
     skip(db_pool)
 )]
-pub async fn validate_poll_id(
-    db_pool: &PgPool,
-    poll_id: Uuid,
-) -> Result<Option<String>, sqlx::Error> {
+async fn validate_poll_id(db_pool: &PgPool, poll_id: &Uuid) -> Result<Option<String>, sqlx::Error> {
     let result = sqlx::query!(
         r#"
         SELECT prompt
@@ -61,4 +62,26 @@ pub async fn validate_poll_id(
     .await?;
 
     Ok(result.map(|r| r.prompt))
+}
+
+#[derive(Debug)]
+struct User {
+    user_id: Uuid,
+    username: String,
+}
+
+async fn get_poll_users(db_pool: &PgPool, poll_id: &Uuid) -> Result<Vec<User>, sqlx::Error> {
+    let rows = sqlx::query_as!(
+        User,
+        r#"
+        SELECT user_id, username
+        FROM poll_users
+        WHERE poll_id = $1
+        "#,
+        poll_id
+    )
+    .fetch_all(db_pool)
+    .await?;
+
+    Ok(rows)
 }
