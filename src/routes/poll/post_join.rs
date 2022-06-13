@@ -1,4 +1,5 @@
-use actix_web::{HttpResponse, ResponseError};
+use actix_web::{web, HttpResponse, ResponseError};
+use uuid::Uuid;
 
 #[derive(thiserror::Error, Debug)]
 pub enum JoinError {
@@ -12,6 +13,6 @@ impl ResponseError for JoinError {
     }
 }
 
-pub async fn join_poll() -> Result<HttpResponse, JoinError> {
+pub async fn join_poll(_path: web::Path<Uuid>) -> Result<HttpResponse, JoinError> {
     Ok(HttpResponse::Ok().finish())
 }
