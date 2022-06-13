@@ -92,6 +92,7 @@ struct User {
     username: String,
 }
 
+#[tracing::instrument(name = "retrieve poll users", skip(db_pool))]
 async fn get_poll_users(db_pool: &PgPool, poll_id: &Uuid) -> Result<Vec<User>, sqlx::Error> {
     let rows = sqlx::query_as!(
         User,
