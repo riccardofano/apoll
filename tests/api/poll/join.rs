@@ -1,18 +1,31 @@
+use fake::{faker::name::en::FirstName, Fake};
+use uuid::Uuid;
+
 use crate::helpers::TestApp;
 
 #[tokio::test]
 async fn post_join_should_return_200_ok() {
     let app = TestApp::new().await;
-    let client = reqwest::Client::new();
 
     let poll_id = app.post_create_poll("Test question?", "TestUser").await;
 
-    let response = client
-        .post(&app.endpoint(&format!("/poll/{poll_id}/join")))
-        .body("")
-        .send()
-        .await
-        .expect("could not send join request");
+    let username: String = FirstName().fake();
+    let body = serde_json::json!({ "username": &username });
+
+    let response = app.join_poll(&poll_id, &body).await;
 
     assert_eq!(response.status().as_u16(), 200);
+}
+
+#[tokio::test]
+async fn join_should_return_404_if_poll_id_does_not_exist() {
+    let app = TestApp::new().await;
+
+    let username: String = FirstName().fake();
+    let body = serde_json::json!({ "username": &username });
+
+    let poll_id = Uuid::new_v4();
+    let response = app.join_poll(&poll_id, &body).await;
+
+    assert_eq!(response.status().as_u16(), 404);
 }
