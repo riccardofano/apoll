@@ -43,12 +43,7 @@ async fn joined_user_should_appear_in_the_poll_page() {
     assert_eq!(response.status().as_u16(), 200);
 
     // Visit poll page
-    let response = app
-        .api_client
-        .get(app.endpoint(&format!("/poll/{poll_id}")))
-        .send()
-        .await
-        .expect("failed to send request");
+    let response = app.get_poll_page(&poll_id.to_string()).await;
     assert_eq!(response.status().as_u16(), 200);
 
     // Assert username is in the poll page

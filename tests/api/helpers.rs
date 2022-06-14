@@ -142,6 +142,14 @@ impl TestApp {
         poll_id
     }
 
+    pub async fn get_poll_page(&self, poll_id: &str) -> reqwest::Response {
+        self.api_client
+            .get(self.endpoint(&format!("/poll/{poll_id}")))
+            .send()
+            .await
+            .expect("failed to send get request")
+    }
+
     pub async fn join_poll<Body: serde::Serialize>(
         &self,
         poll_id: &Uuid,
