@@ -28,6 +28,7 @@ pub struct TestApp {
     pub address: String,
     pub db_name: String,
     pub db_pool: PgPool,
+    pub api_client: reqwest::Client,
 }
 
 impl TestApp {
@@ -46,6 +47,12 @@ impl TestApp {
         // Create and migrate the database
         let db_pool = TestApp::configure_database(&configuration.database).await;
 
+        // Create API client
+        let api_client = reqwest::Client::builder()
+            .redirect(reqwest::redirect::Policy::none())
+            .build()
+            .unwrap();
+
         // Run the server
         let listener =
             TcpListener::bind(configuration.address()).expect("failed to bind random port");
@@ -57,6 +64,7 @@ impl TestApp {
             address: format!("http://localhost:{}", application_port),
             db_name: configuration.database.database_name,
             db_pool,
+            api_client,
         }
     }
 
@@ -132,6 +140,27 @@ impl TestApp {
         .expect("failed to insert poll_users junction table entry");
 
         poll_id
+    }
+
+    pub async fn get_poll_page(&self, poll_id: &str) -> reqwest::Response {
+        self.api_client
+            .get(self.endpoint(&format!("/poll/{poll_id}")))
+            .send()
+            .await
+            .expect("failed to send get request")
+    }
+
+    pub async fn join_poll<Body: serde::Serialize>(
+        &self,
+        poll_id: &Uuid,
+        body: &Body,
+    ) -> reqwest::Response {
+        self.api_client
+            .post(&self.endpoint(&format!("/poll/{poll_id}/join")))
+            .form(body)
+            .send()
+            .await
+            .expect("could not send join request")
     }
 }
 

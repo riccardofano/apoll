@@ -4,6 +4,8 @@ use reqwest::StatusCode;
 use sqlx::PgPool;
 use uuid::Uuid;
 
+use crate::middleware::PollInfo;
+
 #[derive(thiserror::Error, Debug)]
 pub enum ShowPollError {
     #[error("could not find poll")]
@@ -27,16 +29,11 @@ impl ResponseError for ShowPollError {
     fields(poll_id=tracing::field::Empty)
 )]
 pub async fn show_poll(
-    path: web::Path<Uuid>,
     db_pool: web::Data<PgPool>,
+    poll_info: PollInfo,
 ) -> Result<HttpResponse, ShowPollError> {
-    let poll_id = path.into_inner();
+    let PollInfo { poll_id, prompt } = poll_info;
     tracing::Span::current().record("poll_id", &tracing::field::display(&poll_id));
-
-    let prompt = validate_poll_id(&db_pool, &poll_id)
-        .await
-        .context("failed to query database for poll_id")?
-        .ok_or(ShowPollError::InvalidPollError)?;
 
     let poll_users = get_poll_users(&db_pool, &poll_id)
         .await
