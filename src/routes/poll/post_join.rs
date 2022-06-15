@@ -1,10 +1,10 @@
 use actix_web::{web, HttpResponse, ResponseError};
 use anyhow::Context;
-use reqwest::StatusCode;
+use reqwest::{header::LOCATION, StatusCode};
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::middleware::PollInfo;
+use crate::{middleware::PollInfo, user_session::TypedSession};
 
 #[derive(thiserror::Error, Debug)]
 pub enum JoinError {
@@ -40,15 +40,23 @@ pub async fn join_poll(
     form: web::Form<JoinForm>,
     db_pool: web::Data<PgPool>,
     poll_info: PollInfo,
+    session: TypedSession,
 ) -> Result<HttpResponse, JoinError> {
-    tracing::Span::current().record("user_id", &tracing::field::display(&poll_info.poll_id));
+    tracing::Span::current().record("poll_id", &tracing::field::display(&poll_info.poll_id));
     tracing::Span::current().record("user_name", &tracing::field::display(&form.0.username));
 
-    create_and_insert_user(&db_pool, poll_info.poll_id, form.0.username)
+    let user_id = create_and_insert_user(&db_pool, poll_info.poll_id, form.0.username)
         .await
         .context("failed to create and insert user into the poll")?;
 
-    Ok(HttpResponse::Ok().finish())
+    session.renew();
+    session
+        .insert_user_id(user_id)
+        .context("failed to insert user_id into session store")?;
+
+    Ok(HttpResponse::SeeOther()
+        .insert_header((LOCATION, format!("/poll/{}", poll_info.poll_id)))
+        .finish())
 }
 
 #[tracing::instrument(
@@ -59,7 +67,7 @@ async fn create_and_insert_user(
     db_pool: &PgPool,
     poll_id: Uuid,
     username: String,
-) -> Result<(), sqlx::Error> {
+) -> Result<Uuid, sqlx::Error> {
     let mut transaction = db_pool.begin().await?;
 
     let user_id = Uuid::new_v4();
@@ -87,5 +95,5 @@ async fn create_and_insert_user(
 
     transaction.commit().await?;
 
-    Ok(())
+    Ok(user_id)
 }
