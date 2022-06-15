@@ -50,6 +50,7 @@ impl TestApp {
         // Create API client
         let api_client = reqwest::Client::builder()
             .redirect(reqwest::redirect::Policy::none())
+            .cookie_store(true)
             .build()
             .unwrap();
 

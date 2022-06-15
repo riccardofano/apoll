@@ -61,4 +61,7 @@ async fn joined_user_should_appear_in_the_poll_page() {
     // Assert username is in the poll page
     let text = response.text().await.unwrap();
     assert!(text.contains(&username));
+
+    // Assert greeting is displayed
+    assert!(text.contains(&format!("<p>Logged in as {username}</p>")))
 }
