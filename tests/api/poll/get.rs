@@ -42,7 +42,7 @@ async fn page_should_return_200_if_path_is_a_valid_poll() {
 async fn page_should_display_creator_and_prompt() {
     let app = TestApp::new().await;
 
-    let prompt: String = Sentence(1..10).fake();
+    let prompt: String = Sentence(1..3).fake();
     let username: String = FirstName().fake();
     let poll_id = app.post_create_poll(&prompt, &username).await;
 

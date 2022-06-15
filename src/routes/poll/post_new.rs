@@ -1,11 +1,11 @@
 use actix_web::{web, HttpResponse, ResponseError};
 use anyhow::Context;
-use reqwest::StatusCode;
+use reqwest::{header::LOCATION, StatusCode};
 use sqlx::{PgPool, Postgres, Transaction};
 use uuid::Uuid;
 use validator::{Validate, ValidationErrors};
 
-use crate::domain::PollFormData;
+use crate::{domain::PollFormData, user_session::TypedSession};
 
 #[derive(thiserror::Error, Debug)]
 pub enum CreatePollError {
@@ -35,6 +35,7 @@ impl ResponseError for CreatePollError {
 pub async fn create_poll(
     form: web::Form<PollFormData>,
     db_pool: web::Data<PgPool>,
+    session: TypedSession,
 ) -> Result<HttpResponse, CreatePollError> {
     let _form = form.validate().map_err(CreatePollError::ValidationError)?;
 
@@ -63,7 +64,15 @@ pub async fn create_poll(
         .await
         .context("could not commit Postgres transaction")?;
 
-    Ok(HttpResponse::Ok().finish())
+    session.renew();
+    session
+        .insert_user_id(user_id)
+        .map_err(|e| CreatePollError::UnexpectedError(e.into()))?;
+
+    let response = HttpResponse::SeeOther()
+        .insert_header((LOCATION, format!("/poll/{poll_id}")))
+        .finish();
+    Ok(response)
 }
 
 #[tracing::instrument(name = "Inserting new poll creator in the database", skip_all)]
