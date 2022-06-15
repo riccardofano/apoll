@@ -1,6 +1,7 @@
 application:
   port: 8000
   host: 0.0.0.0
+  hmac_secret: "your-super-long-secret-key-that-nobody-will-be-able-to-guess-ever"
 database:
   host: "127.0.0.1"
   port: 5432
@@ -10,3 +11,4 @@ database:
   password: "password"
   database_name: "apoll"
   require_ssl: false
+redis_uri: "redis://127.0.0.1:6379"

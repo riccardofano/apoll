@@ -8,7 +8,7 @@ use sqlx::postgres::PgPoolOptions;
 use std::{net::TcpListener, time::Duration};
 
 #[tokio::main]
-async fn main() -> std::io::Result<()> {
+async fn main() -> anyhow::Result<()> {
     // Set up tracing
     let subscriber = get_subscriber("apoll".into(), "info".into(), std::io::stdout);
     init_subscriber(subscriber);
@@ -21,7 +21,15 @@ async fn main() -> std::io::Result<()> {
     let address = configuration.address();
     let listener = TcpListener::bind(address)?;
 
-    run(listener, connection_pool)?.await?;
+    let server = run(
+        listener,
+        connection_pool,
+        configuration.application.hmac_secret,
+        configuration.redis_uri,
+    )
+    .await?;
+
+    server.await?;
 
     Ok(())
 }
