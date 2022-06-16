@@ -1,5 +1,3 @@
-use std::net::TcpListener;
-
 use once_cell::sync::Lazy;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use tokio::runtime::Runtime;
@@ -7,7 +5,7 @@ use tracing::info;
 use uuid::Uuid;
 
 use apoll::configuration::{DatabaseSettings, Settings};
-use apoll::startup::run;
+use apoll::startup::Application;
 use apoll::telemetry::{get_subscriber, init_subscriber};
 
 // Only initialize tracing once
@@ -55,18 +53,11 @@ impl TestApp {
             .unwrap();
 
         // Run the server
-        let listener =
-            TcpListener::bind(configuration.address()).expect("failed to bind random port");
-        let application_port = listener.local_addr().unwrap().port();
-        let server = run(
-            listener,
-            db_pool.clone(),
-            configuration.application.hmac_secret,
-            configuration.redis_uri,
-        )
-        .await
-        .expect("failed to bind address");
-        let _ = tokio::spawn(server);
+        let application = Application::build(configuration.clone())
+            .await
+            .expect("failed to build application");
+        let application_port = application.port();
+        let _ = tokio::spawn(application.run_until_stopped());
 
         TestApp {
             address: format!("http://localhost:{}", application_port),
