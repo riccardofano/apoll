@@ -45,6 +45,18 @@ pub async fn join_poll(
     tracing::Span::current().record("poll_id", &tracing::field::display(&poll_info.poll_id));
     tracing::Span::current().record("user_name", &tracing::field::display(&form.0.username));
 
+    // Reject user if they're already logged in
+    if session
+        .get_user_id()
+        .map_err(|e| JoinError::UnexpectedError(e.into()))?
+        .is_some()
+    {
+        // TODO: add message saying you're already logged in
+        return Ok(HttpResponse::SeeOther()
+            .insert_header((LOCATION, format!("/poll/{}", poll_info.poll_id)))
+            .finish());
+    };
+
     let user_id = create_and_insert_user(&db_pool, poll_info.poll_id, form.0.username)
         .await
         .context("failed to create and insert user into the poll")?;

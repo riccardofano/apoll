@@ -65,3 +65,37 @@ async fn joined_user_should_appear_in_the_poll_page() {
     // Assert greeting is displayed
     assert!(text.contains(&format!("<p>Logged in as {username}</p>")))
 }
+
+#[tokio::test]
+async fn joined_user_should_be_rejected_if_they_try_to_join_again() {
+    let app = TestApp::new().await;
+
+    let poll_id = app.post_create_poll("Test Question", "testuser").await;
+    let username: String = FirstName().fake();
+    let body = serde_json::json!({ "username": &username });
+
+    // Join poll
+    let response = app.join_poll(&poll_id, &body).await;
+    assert_eq!(response.status().as_u16(), 303);
+    assert!(location_string(response).contains(&poll_id.to_string()));
+
+    // Assert username is in the poll page
+    let response = app.get_poll_page(&poll_id.to_string()).await;
+    let text = response.text().await.unwrap();
+    assert!(text.contains(&username));
+
+    // Join poll again
+    let response = app.join_poll(&poll_id, &body).await;
+    assert_eq!(response.status().as_u16(), 303);
+    assert!(location_string(response).contains(&poll_id.to_string()));
+
+    // Assert username is in the poll page
+    let response = app.get_poll_page(&poll_id.to_string()).await;
+    let text = response.text().await.unwrap();
+    // Count should be 2 (user list and "logged in as user `username`")
+    // There shouldn't be 2 instances of the name in the user list
+    assert_eq!(text.matches(&username).count(), 2);
+
+    // Assert greeting is displayed
+    assert!(text.contains(&format!("<p>Logged in as {username}</p>")))
+}
