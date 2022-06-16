@@ -4,7 +4,7 @@ use reqwest::StatusCode;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::middleware::PollInfo;
+use crate::{middleware::PollInfo, user_session::TypedSession};
 
 #[derive(thiserror::Error, Debug)]
 pub enum ShowPollError {
@@ -31,9 +31,23 @@ impl ResponseError for ShowPollError {
 pub async fn show_poll(
     db_pool: web::Data<PgPool>,
     poll_info: PollInfo,
+    session: TypedSession,
 ) -> Result<HttpResponse, ShowPollError> {
     let PollInfo { poll_id, prompt } = poll_info;
     tracing::Span::current().record("poll_id", &tracing::field::display(&poll_id));
+
+    let mut user_greeting = String::new();
+    let mut join_form = String::new();
+    if let Some(user) = get_session_user(session, &db_pool, &poll_id).await? {
+        user_greeting = format!("<p>Logged in as {}</p>", user.username);
+    } else {
+        join_form = format!(
+            r#"<form action="/poll/{poll_id}/join" method="post">
+                <input type="text" placeholder="Username" name="username" />
+                <button type="submit">Join poll</button>
+            </form>"#
+        )
+    }
 
     let poll_users = get_poll_users(&db_pool, &poll_id)
         .await
@@ -55,7 +69,10 @@ pub async fn show_poll(
         <title>Login</title>
     </head>
     <body>
+        {user_greeting}
         <h1>{prompt}</h1>
+        {join_form}
+        </form>
         <h2>Users</h2>
         <ul>
             {users_li}
@@ -65,30 +82,55 @@ pub async fn show_poll(
         )))
 }
 
-#[tracing::instrument(
-    name = "retrieve pool details from database"
-    skip(db_pool)
-)]
-async fn validate_poll_id(db_pool: &PgPool, poll_id: &Uuid) -> Result<Option<String>, sqlx::Error> {
-    let result = sqlx::query!(
-        r#"
-        SELECT prompt
-        FROM polls
-        WHERE poll_id = $1
-        "#,
-        poll_id
-    )
-    .fetch_optional(db_pool)
-    .await?;
-
-    Ok(result.map(|r| r.prompt))
-}
-
+#[derive(Debug)]
 struct User {
     // TODO: remove this when user_id gets used
     #[allow(dead_code)]
     user_id: Uuid,
     username: String,
+}
+
+#[tracing::instrument(name = "get user from session", skip(session, db_pool))]
+async fn get_session_user(
+    session: TypedSession,
+    db_pool: &PgPool,
+    poll_id: &Uuid,
+) -> Result<Option<User>, anyhow::Error> {
+    let user_id = session
+        .get_user_id()
+        .context("failed to retrieve user_id from session store")?;
+
+    let user = match user_id {
+        Some(user_id) => get_user_from_id(db_pool, &user_id, poll_id)
+            .await
+            .context("failed to retrieve user from database")?,
+        None => return Ok(None),
+    };
+
+    Ok(user)
+}
+
+#[tracing::instrument(name = "retrieve logged in user info", skip(db_pool))]
+async fn get_user_from_id(
+    db_pool: &PgPool,
+    user_id: &Uuid,
+    poll_id: &Uuid,
+) -> Result<Option<User>, sqlx::Error> {
+    let result = sqlx::query_as!(
+        User,
+        r#"
+        SELECT user_id, username
+        FROM poll_users
+        WHERE poll_id = $1 AND user_id = $2
+        LIMIT 1
+        "#,
+        poll_id,
+        user_id
+    )
+    .fetch_optional(db_pool)
+    .await?;
+
+    Ok(result)
 }
 
 #[tracing::instrument(name = "retrieve poll users", skip(db_pool))]

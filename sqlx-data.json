@@ -12,6 +12,33 @@
       "nullable": []
     }
   },
+  "2548df2d7334cc3b3c88b48fbf8da0584ac04033344788b51e4bdea663ba8c28": {
+    "query": "\n        SELECT user_id, username\n        FROM poll_users\n        WHERE poll_id = $1 AND user_id = $2\n        LIMIT 1\n        ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "user_id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "username",
+          "type_info": "Varchar"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid"
+        ]
+      },
+      "nullable": [
+        false,
+        false
+      ]
+    }
+  },
   "37a3bd07e55f7fe349acfd71d840d2ce4395106a2dbf27da9fd4989047e12460": {
     "query": "\n        SELECT user_id, username\n        FROM poll_users\n        WHERE poll_id = $1\n        ",
     "describe": {

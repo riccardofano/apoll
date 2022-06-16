@@ -44,8 +44,6 @@ pub async fn validate_poll_id(
         .map_err(e404)?
         .ok_or_else(|| e404(anyhow::anyhow!("could not find poll_id: {}", poll_id)))?;
 
-    dbg!(&prompt, &poll_id);
-
     req.extensions_mut().insert(PollInfo { poll_id, prompt });
     next.call(req).await
 }
