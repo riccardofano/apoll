@@ -37,8 +37,16 @@ pub async fn show_poll(
     tracing::Span::current().record("poll_id", &tracing::field::display(&poll_id));
 
     let mut user_greeting = String::new();
+    let mut join_form = String::new();
     if let Some(user) = get_session_user(session, &db_pool, &poll_id).await? {
         user_greeting = format!("<p>Logged in as {}</p>", user.username);
+    } else {
+        join_form = format!(
+            r#"<form action="/poll/{poll_id}/join" method="post">
+                <input type="text" placeholder="Username" name="username" />
+                <button type="submit">Join poll</button>
+            </form>"#
+        )
     }
 
     let poll_users = get_poll_users(&db_pool, &poll_id)
@@ -63,6 +71,8 @@ pub async fn show_poll(
     <body>
         {user_greeting}
         <h1>{prompt}</h1>
+        {join_form}
+        </form>
         <h2>Users</h2>
         <ul>
             {users_li}
