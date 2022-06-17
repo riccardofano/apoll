@@ -1,5 +1,5 @@
-use actix_web::{web, HttpResponse, ResponseError};
-use anyhow::Context;
+use actix_web::{error::InternalError, web, HttpResponse, ResponseError};
+use actix_web_flash_messages::FlashMessage;
 use reqwest::{header::LOCATION, StatusCode};
 use sqlx::{PgPool, Postgres, Transaction};
 use uuid::Uuid;
@@ -11,6 +11,8 @@ use crate::{domain::PollFormData, user_session::TypedSession};
 pub enum CreatePollError {
     #[error("{0}")]
     ValidationError(ValidationErrors),
+    #[error("failed to read user session")]
+    SessionError(#[from] serde_json::Error),
     #[error(transparent)]
     UnexpectedError(#[from] anyhow::Error),
 }
@@ -20,6 +22,7 @@ impl ResponseError for CreatePollError {
         match self {
             CreatePollError::ValidationError(_) => StatusCode::BAD_REQUEST,
             CreatePollError::UnexpectedError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            CreatePollError::SessionError(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }
@@ -36,43 +39,49 @@ pub async fn create_poll(
     form: web::Form<PollFormData>,
     db_pool: web::Data<PgPool>,
     session: TypedSession,
-) -> Result<HttpResponse, CreatePollError> {
-    let _form = form.validate().map_err(CreatePollError::ValidationError)?;
+) -> Result<HttpResponse, InternalError<CreatePollError>> {
+    if let Err(e) = form.validate() {
+        return Err(flash_message_redirect(CreatePollError::ValidationError(e)));
+    }
 
-    let mut transaction = db_pool
-        .begin()
-        .await
-        .context("failed to begin Postgres transaction from pool")?;
-
+    let mut transaction = db_pool.begin().await.map_err(unexpected)?;
     // Create new user
     let user_id = insert_new_user(&mut transaction)
         .await
-        .context("could not insert new user")?;
-
+        .map_err(unexpected)?;
     // Create new poll
     let poll_id = insert_new_poll(&mut transaction, &user_id, form.0.prompt)
         .await
-        .context("could not insert new poll")?;
-
+        .map_err(unexpected)?;
     // Create poll_user instance with new user and poll
     link_poll_user(&mut transaction, &poll_id, &user_id, form.0.username)
         .await
-        .context("could not link poll and user")?;
-
-    transaction
-        .commit()
-        .await
-        .context("could not commit Postgres transaction")?;
+        .map_err(unexpected)?;
+    transaction.commit().await.map_err(unexpected)?;
 
     session.renew();
     session
         .insert_user_id(user_id)
-        .map_err(|e| CreatePollError::UnexpectedError(e.into()))?;
+        .map_err(|e| flash_message_redirect(CreatePollError::SessionError(e)))?;
 
     let response = HttpResponse::SeeOther()
         .insert_header((LOCATION, format!("/poll/{poll_id}")))
         .finish();
     Ok(response)
+}
+
+fn flash_message_redirect(e: CreatePollError) -> InternalError<CreatePollError> {
+    FlashMessage::error(e.to_string()).send();
+    InternalError::from_response(
+        e,
+        HttpResponse::SeeOther()
+            .insert_header((LOCATION, "/"))
+            .finish(),
+    )
+}
+
+fn unexpected(e: sqlx::Error) -> InternalError<CreatePollError> {
+    flash_message_redirect(CreatePollError::UnexpectedError(e.into()))
 }
 
 #[tracing::instrument(name = "Inserting new poll creator in the database", skip_all)]

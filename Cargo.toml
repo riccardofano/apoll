@@ -31,6 +31,7 @@ tracing-subscriber = { version = "0.3.11", features = ["registry", "env-filter"]
 tracing-actix-web = "0.5.1"
 actix-session = { version = "0.6.2", features = ["redis-rs-tls-session"] }
 secrecy = { version = "0.8.0", features = ["serde"] }
+actix-web-flash-messages = { version = "0.3.2", features = ["cookies"] }
 
 [dependencies.sqlx]
 version = "0.5.7"
