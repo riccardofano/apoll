@@ -10,19 +10,19 @@ use crate::{domain::PollFormData, user_session::TypedSession};
 #[derive(thiserror::Error, Debug)]
 pub enum CreatePollError {
     #[error("{0}")]
-    ValidationError(ValidationErrors),
+    Validation(ValidationErrors),
     #[error("failed to read user session")]
-    SessionError(#[from] serde_json::Error),
+    Session(#[from] serde_json::Error),
     #[error(transparent)]
-    UnexpectedError(#[from] anyhow::Error),
+    Unexpected(#[from] anyhow::Error),
 }
 
 impl ResponseError for CreatePollError {
     fn status_code(&self) -> reqwest::StatusCode {
         match self {
-            CreatePollError::ValidationError(_) => StatusCode::BAD_REQUEST,
-            CreatePollError::UnexpectedError(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            CreatePollError::SessionError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            CreatePollError::Validation(_) => StatusCode::BAD_REQUEST,
+            CreatePollError::Unexpected(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            CreatePollError::Session(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }
@@ -41,7 +41,7 @@ pub async fn create_poll(
     session: TypedSession,
 ) -> Result<HttpResponse, InternalError<CreatePollError>> {
     if let Err(e) = form.validate() {
-        return Err(flash_message_redirect(CreatePollError::ValidationError(e)));
+        return Err(flash_message_redirect(CreatePollError::Validation(e)));
     }
 
     let mut transaction = db_pool.begin().await.map_err(unexpected)?;
@@ -62,7 +62,7 @@ pub async fn create_poll(
     session.renew();
     session
         .insert_user_id(user_id)
-        .map_err(|e| flash_message_redirect(CreatePollError::SessionError(e)))?;
+        .map_err(|e| flash_message_redirect(CreatePollError::Session(e)))?;
 
     let response = HttpResponse::SeeOther()
         .insert_header((LOCATION, format!("/poll/{poll_id}")))
@@ -81,7 +81,7 @@ fn flash_message_redirect(e: CreatePollError) -> InternalError<CreatePollError> 
 }
 
 fn unexpected(e: sqlx::Error) -> InternalError<CreatePollError> {
-    flash_message_redirect(CreatePollError::UnexpectedError(e.into()))
+    flash_message_redirect(CreatePollError::Unexpected(e.into()))
 }
 
 #[tracing::instrument(name = "Inserting new poll creator in the database", skip_all)]
