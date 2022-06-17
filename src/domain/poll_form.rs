@@ -1,14 +1,15 @@
 use serde::Deserialize;
 use validator::{Validate, ValidationError};
 
+// TODO: implement prettier messages
 #[derive(Debug, Validate, Deserialize)]
 pub struct PollFormData {
     #[validate(
-        length(min = 3, max = 32),
+        length(min = 3, max = 32, message = "length is invalid."),
         custom = "validate_has_only_allowed_characters"
     )]
     pub username: String,
-    #[validate(length(min = 3, max = 64))]
+    #[validate(length(min = 3, max = 64, message = "length is invalid."))]
     pub prompt: String,
 }
 
