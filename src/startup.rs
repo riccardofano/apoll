@@ -10,7 +10,7 @@ use tracing_actix_web::TracingLogger;
 use crate::{
     configuration::{DatabaseSettings, Settings},
     middleware::validate_poll_id,
-    routes::poll::{create_poll, join_poll, show_poll},
+    routes::poll::{create_poll, join_poll, new_poll, show_poll},
 };
 
 pub struct Application {
@@ -70,8 +70,9 @@ pub async fn run(
                 secret_key.clone(),
             ))
             .wrap(TracingLogger::default())
-            .route("/", web::get().to(hello))
+            .route("/", web::get().to(new_poll))
             .route("/new", web::post().to(create_poll))
+            .route("/health_check", web::get().to(health_check))
             .service(
                 web::scope("/poll/{poll_id}")
                     .wrap(from_fn(validate_poll_id))
@@ -86,6 +87,6 @@ pub async fn run(
     Ok(server)
 }
 
-async fn hello() -> impl Responder {
-    HttpResponse::Ok().body("Hello")
+async fn health_check() -> impl Responder {
+    HttpResponse::Ok().finish()
 }
