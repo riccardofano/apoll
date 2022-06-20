@@ -68,11 +68,13 @@ async fn insert_suggestion(
     user_id: &Uuid,
     suggestion: String,
 ) -> Result<(), sqlx::Error> {
+    let suggestion_id = Uuid::new_v4();
     sqlx::query!(
         r#"
-        INSERT INTO suggestions (poll_id, creator_id, suggestion, created_at)
-        VALUES ($1, $2, $3, now())
+        INSERT INTO suggestions (suggestion_id, poll_id, creator_id, suggestion, created_at)
+        VALUES ($1, $2, $3, $4, now())
         "#,
+        suggestion_id,
         poll_id,
         user_id,
         suggestion
