@@ -1,4 +1,5 @@
 use once_cell::sync::Lazy;
+use reqwest::Response;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use tokio::runtime::Runtime;
 use tracing::info;
@@ -197,4 +198,13 @@ impl Drop for TestApp {
         let _ = rx.recv();
         info!("ran test teardown");
     }
+}
+
+pub fn location_string(res: Response) -> String {
+    res.headers()
+        .get("location")
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .to_string()
 }

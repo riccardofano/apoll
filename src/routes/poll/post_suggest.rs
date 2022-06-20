@@ -1,10 +1,13 @@
 use actix_web::{error::InternalError, web, HttpResponse, ResponseError};
-use actix_web_lab::__reexports::futures_util::TryFutureExt;
 use reqwest::StatusCode;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::{middleware::PollInfo, user_session::TypedSession, utils::flash_message_redirect};
+use crate::{
+    middleware::PollInfo,
+    user_session::TypedSession,
+    utils::{flash_message_redirect, redirect},
+};
 
 #[derive(thiserror::Error, Debug)]
 pub enum SuggestionError {
@@ -52,18 +55,30 @@ pub async fn suggest_answer(
         .await
         .map_err(|e| flash_message_redirect(SuggestionError::Unexpected(e.into()), poll_uri))?;
 
-    Ok(HttpResponse::Ok().finish())
+    Ok(redirect(poll_uri))
 }
 
 #[tracing::instrument(
     name = "insert new suggestion"
-    skip(_db_pool)
+    skip(db_pool)
 )]
 async fn insert_suggestion(
-    _db_pool: &PgPool,
-    _poll_id: &Uuid,
-    _user_id: &Uuid,
-    _suggestion: String,
+    db_pool: &PgPool,
+    poll_id: &Uuid,
+    user_id: &Uuid,
+    suggestion: String,
 ) -> Result<(), sqlx::Error> {
-    todo!()
+    sqlx::query!(
+        r#"
+        INSERT INTO suggestions (poll_id, creator_id, suggestion, created_at)
+        VALUES ($1, $2, $3, now())
+        "#,
+        poll_id,
+        user_id,
+        suggestion
+    )
+    .execute(db_pool)
+    .await?;
+
+    Ok(())
 }
