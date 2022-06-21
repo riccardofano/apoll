@@ -162,6 +162,19 @@ impl TestApp {
             .await
             .expect("could not send join request")
     }
+
+    pub async fn post_suggestion<Body: serde::Serialize>(
+        &self,
+        poll_id: &Uuid,
+        body: &Body,
+    ) -> reqwest::Response {
+        self.api_client
+            .post(self.endpoint(&format!("/poll/{poll_id}/suggest")))
+            .form(body)
+            .send()
+            .await
+            .expect("failed to execute request")
+    }
 }
 
 impl Drop for TestApp {

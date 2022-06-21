@@ -10,12 +10,11 @@ async fn suggest_redirects_to_poll_page_upon_successful_request() {
         .await;
 
     let response = app
-        .api_client
-        .post(app.endpoint(&format!("/poll/{poll_id}/suggest")))
-        .form(&serde_json::json!({ "suggestion": "suggestion" }))
-        .send()
-        .await
-        .expect("failed to execute request");
+        .post_suggestion(
+            &poll_id,
+            &serde_json::json!({"suggestion": "my suggestion"}),
+        )
+        .await;
 
     assert_eq!(response.status().as_u16(), 303);
     assert_eq!(&location_string(response), &format!("/poll/{poll_id}"))
@@ -31,13 +30,8 @@ async fn suggestions_gets_displayed_on_page_after_insertion() {
         .await;
 
     let suggestion = "my brilliant suggestion";
-    let response = app
-        .api_client
-        .post(app.endpoint(&format!("/poll/{poll_id}/suggest")))
-        .form(&serde_json::json!({ "suggestion": suggestion }))
-        .send()
-        .await
-        .expect("failed to execute request");
+    let body = serde_json::json!({ "suggestion": suggestion });
+    let response = app.post_suggestion(&poll_id, &body).await;
 
     // Redirected to poll page
     assert_eq!(response.status().as_u16(), 303);
