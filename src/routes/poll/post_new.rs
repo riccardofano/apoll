@@ -1,11 +1,10 @@
 use actix_web::{error::InternalError, web, HttpResponse, ResponseError};
-use actix_web_flash_messages::FlashMessage;
 use reqwest::{header::LOCATION, StatusCode};
 use sqlx::{PgPool, Postgres, Transaction};
 use uuid::Uuid;
 use validator::{Validate, ValidationErrors};
 
-use crate::{domain::PollFormData, user_session::TypedSession};
+use crate::{domain::PollFormData, user_session::TypedSession, utils::flash_message_redirect};
 
 #[derive(thiserror::Error, Debug)]
 pub enum CreatePollError {
@@ -41,7 +40,7 @@ pub async fn create_poll(
     session: TypedSession,
 ) -> Result<HttpResponse, InternalError<CreatePollError>> {
     if let Err(e) = form.validate() {
-        return Err(flash_message_redirect(CreatePollError::Validation(e)));
+        return Err(flash_message_redirect(CreatePollError::Validation(e), "/"));
     }
 
     let mut transaction = db_pool.begin().await.map_err(unexpected)?;
@@ -59,10 +58,11 @@ pub async fn create_poll(
         .map_err(unexpected)?;
     transaction.commit().await.map_err(unexpected)?;
 
+    // Log user in
     session.renew();
     session
         .insert_user_id(user_id)
-        .map_err(|e| flash_message_redirect(CreatePollError::Session(e)))?;
+        .map_err(|e| flash_message_redirect(CreatePollError::Session(e), "/"))?;
 
     let response = HttpResponse::SeeOther()
         .insert_header((LOCATION, format!("/poll/{poll_id}")))
@@ -70,18 +70,8 @@ pub async fn create_poll(
     Ok(response)
 }
 
-fn flash_message_redirect(e: CreatePollError) -> InternalError<CreatePollError> {
-    FlashMessage::error(e.to_string()).send();
-    InternalError::from_response(
-        e,
-        HttpResponse::SeeOther()
-            .insert_header((LOCATION, "/"))
-            .finish(),
-    )
-}
-
 fn unexpected(e: sqlx::Error) -> InternalError<CreatePollError> {
-    flash_message_redirect(CreatePollError::Unexpected(e.into()))
+    flash_message_redirect(CreatePollError::Unexpected(e.into()), "/")
 }
 
 #[tracing::instrument(name = "Inserting new poll creator in the database", skip_all)]

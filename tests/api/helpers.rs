@@ -1,4 +1,5 @@
 use once_cell::sync::Lazy;
+use reqwest::Response;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use tokio::runtime::Runtime;
 use tracing::info;
@@ -161,6 +162,19 @@ impl TestApp {
             .await
             .expect("could not send join request")
     }
+
+    pub async fn post_suggestion<Body: serde::Serialize>(
+        &self,
+        poll_id: &Uuid,
+        body: &Body,
+    ) -> reqwest::Response {
+        self.api_client
+            .post(self.endpoint(&format!("/poll/{poll_id}/suggest")))
+            .form(body)
+            .send()
+            .await
+            .expect("failed to execute request")
+    }
 }
 
 impl Drop for TestApp {
@@ -197,4 +211,13 @@ impl Drop for TestApp {
         let _ = rx.recv();
         info!("ran test teardown");
     }
+}
+
+pub fn location_string(res: Response) -> String {
+    res.headers()
+        .get("location")
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .to_string()
 }

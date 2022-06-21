@@ -11,7 +11,7 @@ use tracing_actix_web::TracingLogger;
 use crate::{
     configuration::{DatabaseSettings, Settings},
     middleware::validate_poll_id,
-    routes::poll::{create_poll, join_poll, new_poll, show_poll},
+    routes::poll::{create_poll, join_poll, new_poll, show_poll, suggest_answer},
 };
 
 pub struct Application {
@@ -82,7 +82,8 @@ pub async fn run(
                 web::scope("/poll/{poll_id}")
                     .wrap(from_fn(validate_poll_id))
                     .route("", web::get().to(show_poll))
-                    .route("/join", web::post().to(join_poll)),
+                    .route("/join", web::post().to(join_poll))
+                    .route("/suggest", web::post().to(suggest_answer)),
             )
             .app_data(db_pool.clone())
     })

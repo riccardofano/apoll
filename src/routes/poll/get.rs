@@ -37,9 +37,16 @@ pub async fn show_poll(
     tracing::Span::current().record("poll_id", &tracing::field::display(&poll_id));
 
     let mut user_greeting = String::new();
+    let mut suggest_form = String::new();
     let mut join_form = String::new();
     if let Some(user) = get_session_user(session, &db_pool, &poll_id).await? {
         user_greeting = format!("<p>Logged in as {}</p>", user.username);
+        suggest_form = format!(
+            r#"<form action="/poll/{poll_id}/suggest" method="post">
+                <input type="text" placeholder="Add suggestion" name="suggestion" />
+                <button type="submit">Add Suggestion</button>
+            </form>"#
+        );
     } else {
         join_form = format!(
             r#"<form action="/poll/{poll_id}/join" method="post">
@@ -49,13 +56,23 @@ pub async fn show_poll(
         )
     }
 
+    // Retrieve users
     let poll_users = get_poll_users(&db_pool, &poll_id)
         .await
         .context("failed to retrieve poll users")?;
-
     let users_li = poll_users
         .iter()
         .map(|u| format!("<li>{}</li>", u.username))
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    // Retrieve suggestions
+    let suggestions = get_suggestions(&db_pool, &poll_id)
+        .await
+        .context("failed to retrieve suggestions")?;
+    let suggestions_li = suggestions
+        .iter()
+        .map(|s| format!("<li>{s}</li>"))
         .collect::<Vec<_>>()
         .join("\n");
 
@@ -72,10 +89,14 @@ pub async fn show_poll(
         {user_greeting}
         <h1>{prompt}</h1>
         {join_form}
-        </form>
+        {suggest_form}
         <h2>Users</h2>
         <ul>
             {users_li}
+        </ul>
+        <h2>Suggestions</h2>
+        <ul>
+            {suggestions_li}
         </ul>
     </body>
 </html>"#
@@ -148,4 +169,26 @@ async fn get_poll_users(db_pool: &PgPool, poll_id: &Uuid) -> Result<Vec<User>, s
     .await?;
 
     Ok(rows)
+}
+
+#[tracing::instrument(name = "retrieve poll suggestions", skip(db_pool))]
+async fn get_suggestions(db_pool: &PgPool, poll_id: &Uuid) -> Result<Vec<String>, sqlx::Error> {
+    struct Row {
+        suggestion: String,
+    }
+
+    let rows = sqlx::query_as!(
+        Row,
+        r#"
+        SELECT (suggestion)
+        FROM suggestions
+        WHERE poll_id = $1
+        "#,
+        poll_id
+    )
+    .fetch_all(db_pool)
+    .await?;
+
+    let suggestions = rows.into_iter().map(|r| r.suggestion).collect();
+    Ok(suggestions)
 }

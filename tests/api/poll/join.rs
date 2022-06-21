@@ -1,17 +1,7 @@
 use fake::{faker::name::en::FirstName, Fake};
-use reqwest::Response;
 use uuid::Uuid;
 
-use crate::helpers::TestApp;
-
-fn location_string(res: Response) -> String {
-    res.headers()
-        .get("location")
-        .unwrap()
-        .to_str()
-        .unwrap()
-        .to_string()
-}
+use crate::helpers::{location_string, TestApp};
 
 #[tokio::test]
 async fn post_join_should_return_200_ok() {
